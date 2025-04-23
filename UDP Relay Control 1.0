@@ -1,0 +1,106 @@
+/*This program for the ESP32 is uploaded using the Arduino IDE.  Ensure you have the correct board
+and port selected.  This program works with an ESP32 WROOM dev board.
+
+This is configured to set pin 23 High or Low and be connected to a Digital Loggers IoT relay.  
+When this ESP32 board receives a matching UDP message to the preset messages, it will turn the relay on or off.
+
+Items to adjust: ssid, password, static IP address , relay pin #, phrases to turn relay on or off. 
+This version is 1.0
+*/
+
+//reference martinius96   https://your-iot.github.io/
+
+#include "WiFi.h"
+#include "AsyncUDP.h"  //library for asyncronous UDP messages.  Allows it run in background
+#define LED_BUILTIN 2
+const char* ssid = "SSID";  //wifi address
+const char* pass = "PASSWORD";  //wifi password
+const int relay = 23;  //relay pin number
+AsyncUDP udp;
+
+// Static IP configuration
+IPAddress staticIP(172, 18, 13, 15); // ESP32 static IP  Change this!
+IPAddress gateway(172, 18, 13, 1);    // IP Address of your network gateway (router)
+IPAddress subnet(255, 255, 255, 0);   // Subnet mask
+IPAddress primaryDNS(160, 111, 8, 18); // Primary DNS (optional)
+IPAddress secondaryDNS(0, 0, 0, 0);   // Secondary DNS (optional)
+
+
+void setup()
+{
+Serial.begin(115200);
+delay(1000);
+pinMode(relay, OUTPUT);
+pinMode(LED_BUILTIN, OUTPUT);
+
+digital.Write(relay, HIGH);  //optional.  In this config, relay will be on at startup.  
+
+//Setup Wifi
+WiFi.disconnect(true);
+WiFi.mode(WIFI_STA);
+WiFi.begin(ssid, pass);
+while (WiFi.status() != WL_CONNECTED) {  //prints dots while waiting to connect
+delay(500);
+Serial.print(".");
+}
+// Configuring static IP
+  if(!WiFi.config(staticIP, gateway, subnet, primaryDNS)) {  //add secondaryDNS if using to list after primaryDNS
+    Serial.println("Failed to configure Static IP");
+  } else {
+    Serial.println("Static IP configured!");
+  }
+  
+  Serial.print("ESP32 IP Address: ");
+  Serial.println(WiFi.localIP());  // Print the ESP32 IP address to Serial Monitor
+  Serial.println("RSSI:");
+  Serial.println(WiFi.RSSI());
+
+
+if (udp.listen(6114)) {
+Serial.println("WiFi connected. UDP Listening on IP: ");
+Serial.println(WiFi.localIP());
+udp.onPacket([](AsyncUDPPacket packet) {
+Serial.print("UDP Packet Type: ");
+Serial.print(packet.isBroadcast() ? "Broadcast" : packet.isMulticast() ? "Multicast" : "Unicast");
+Serial.print(", From: ");
+Serial.print(packet.remoteIP());
+Serial.print(":");
+Serial.print(packet.remotePort());
+Serial.print(", To: ");
+Serial.print(packet.localIP());
+Serial.print(":");
+Serial.print(packet.localPort());
+Serial.print(", Length: ");
+Serial.print(packet.length()); 
+Serial.print(", Data: ");
+Serial.write(packet.data(), packet.length());
+Serial.println();
+String myString = (const char*)packet.data();
+if (myString == ("ALBA_ON")) {
+Serial.println("Turning on relay");  //prints to serial monitor
+digitalWrite(relay, HIGH);
+udp.broadcast("ALBA_RELAY_ON");  //Replies via UDP with what it did.  Useful for doublechecking.
+} else if (myString.startsWith("ALBA_OFF")) {
+Serial.println("Turning off relay");
+digitalWrite(relay, LOW);
+udp.broadcast("ALBA_RELAY_OFF");  //Replies via UDP with what it did.  Useful for doublechecking
+} 
+//packet.printf("Got %u bytes of data", packet.length());  //Useful for determining if any data makes it through.
+});
+}
+}
+
+void loop()
+{
+  //int TryCount = 0;
+  if (WiFi.status() != WL_CONNECTED)
+  {
+    
+    
+    //ESP.restart();
+    WiFi.reconnect();
+    Serial.println("dropped, reconnecting");
+    delay(5000);
+  }
+ 
+}
