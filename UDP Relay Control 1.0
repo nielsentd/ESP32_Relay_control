@@ -33,7 +33,7 @@ delay(1000);
 pinMode(relay, OUTPUT);
 pinMode(LED_BUILTIN, OUTPUT);
 
-digital.Write(relay, HIGH);  //optional.  In this config, relay will be on at startup.  
+digitalWrite(relay, HIGH);  //optional.  In this config, relay will be on at startup.  
 
 //Setup Wifi
 WiFi.disconnect(true);
