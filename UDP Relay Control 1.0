@@ -4,7 +4,7 @@ and port selected.  This program works with an ESP32 WROOM dev board.
 This is configured to set pin 23 High or Low and be connected to a Digital Loggers IoT relay.  
 When this ESP32 board receives a matching UDP message to the preset messages, it will turn the relay on or off.
 
-Items to adjust: ssid, password, static IP address , relay pin #, phrases to turn relay on or off. 
+Items to adjust: ssid, password, static IP address , port number to listen on, relay pin #, phrases to turn relay on or off. 
 This version is 1.0
 */
 
